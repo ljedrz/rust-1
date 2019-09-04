@@ -20,7 +20,7 @@ use rustc_data_structures::thin_vec::ThinVec;
 use rustc_data_structures::sync::{Lrc, Lock, HashMapExt, Once};
 use rustc_data_structures::indexed_vec::{IndexVec, Idx};
 use std::mem;
-use syntax::ast::{Ident, NodeId};
+use syntax::ast::Ident;
 use syntax::source_map::{SourceMap, StableSourceFileId};
 use syntax_pos::{BytePos, Span, DUMMY_SP, SourceFile};
 use syntax_pos::hygiene::{ExpnId, SyntaxContext};
@@ -690,16 +690,6 @@ impl<'a, 'tcx> SpecializedDecoder<hir::HirId> for CacheDecoder<'a, 'tcx> {
     }
 }
 
-// NodeIds are not stable across compilation sessions, so we store them in their
-// HirId representation. This allows use to map them to the current NodeId.
-impl<'a, 'tcx> SpecializedDecoder<NodeId> for CacheDecoder<'a, 'tcx> {
-    #[inline]
-    fn specialized_decode(&mut self) -> Result<NodeId, Self::Error> {
-        let hir_id = hir::HirId::decode(self)?;
-        Ok(self.tcx().hir().hir_to_node_id(hir_id))
-    }
-}
-
 impl<'a, 'tcx> SpecializedDecoder<Fingerprint> for CacheDecoder<'a, 'tcx> {
     fn specialized_decode(&mut self) -> Result<Fingerprint, Self::Error> {
         Fingerprint::decode_opaque(&mut self.opaque)
@@ -943,19 +933,6 @@ where
 {
     fn specialized_encode(&mut self, _: &DefIndex) -> Result<(), Self::Error> {
         bug!("Encoding DefIndex without context.")
-    }
-}
-
-// NodeIds are not stable across compilation sessions, so we store them in their
-// HirId representation. This allows use to map them to the current NodeId.
-impl<'a, 'tcx, E> SpecializedEncoder<NodeId> for CacheEncoder<'a, 'tcx, E>
-where
-    E: 'a + ty_codec::TyEncoder,
-{
-    #[inline]
-    fn specialized_encode(&mut self, node_id: &NodeId) -> Result<(), Self::Error> {
-        let hir_id = self.tcx.hir().node_to_hir_id(*node_id);
-        hir_id.encode(self)
     }
 }
 
