@@ -373,7 +373,7 @@ impl<'a, 'tcx> Visitor<'tcx> for LifetimeContext<'a, 'tcx> {
     }
 
     // We want to nest trait/impl items in their parent, but nothing else.
-    fn visit_nested_item(&mut self, _: hir::ItemId) {}
+    fn visit_nested_reference_to_item(&mut self, _: hir::HirId) {}
 
     fn visit_nested_body(&mut self, body: hir::BodyId) {
         // Each body has their own set of labels, save labels.

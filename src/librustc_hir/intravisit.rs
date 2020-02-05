@@ -232,27 +232,9 @@ pub trait Visitor<'v>: Sized {
     /// reason to override this method is if you want a nested pattern
     /// but cannot supply a `Map`; see `nested_visit_map` for advice.
     #[allow(unused_variables)]
-    fn visit_nested_item(&mut self, id: ItemId) {
-        let opt_item = self.nested_visit_map().inter().map(|map| map.item(id.id));
+    fn visit_nested_reference_to_item(&mut self, id: HirId) {
+        let opt_item = self.nested_visit_map().inter().map(|map| map.item(id));
         walk_list!(self, visit_item, opt_item);
-    }
-
-    /// Like `visit_nested_item()`, but for trait items. See
-    /// `visit_nested_item()` for advice on when to override this
-    /// method.
-    #[allow(unused_variables)]
-    fn visit_nested_trait_item(&mut self, id: TraitItemId) {
-        let opt_item = self.nested_visit_map().inter().map(|map| map.trait_item(id));
-        walk_list!(self, visit_trait_item, opt_item);
-    }
-
-    /// Like `visit_nested_item()`, but for impl items. See
-    /// `visit_nested_item()` for advice on when to override this
-    /// method.
-    #[allow(unused_variables)]
-    fn visit_nested_impl_item(&mut self, id: ImplItemId) {
-        let opt_item = self.nested_visit_map().inter().map(|map| map.impl_item(id));
-        walk_list!(self, visit_impl_item, opt_item);
     }
 
     /// Invoked to visit the body of a function, method or closure. Like
@@ -452,7 +434,7 @@ pub fn walk_macro_def<'v, V: Visitor<'v>>(visitor: &mut V, macro_def: &'v MacroD
 pub fn walk_mod<'v, V: Visitor<'v>>(visitor: &mut V, module: &'v Mod<'v>, mod_hir_id: HirId) {
     visitor.visit_id(mod_hir_id);
     for &item_id in module.item_ids {
-        visitor.visit_nested_item(item_id);
+        visitor.visit_nested_reference_to_item(item_id.id);
     }
 }
 
@@ -665,7 +647,7 @@ pub fn walk_ty<'v, V: Visitor<'v>>(visitor: &mut V, typ: &'v Ty<'v>) {
             visitor.visit_qpath(qpath, typ.hir_id, typ.span);
         }
         TyKind::Def(item_id, lifetimes) => {
-            visitor.visit_nested_item(item_id);
+            visitor.visit_nested_reference_to_item(item_id.id);
             walk_list!(visitor, visit_generic_arg, lifetimes);
         }
         TyKind::Array(ref ty, ref length) => {
@@ -938,7 +920,7 @@ pub fn walk_trait_item<'v, V: Visitor<'v>>(visitor: &mut V, trait_item: &'v Trai
 pub fn walk_trait_item_ref<'v, V: Visitor<'v>>(visitor: &mut V, trait_item_ref: &'v TraitItemRef) {
     // N.B., deliberately force a compilation error if/when new fields are added.
     let TraitItemRef { id, ident, ref kind, span: _, ref defaultness } = *trait_item_ref;
-    visitor.visit_nested_trait_item(id);
+    visitor.visit_nested_reference_to_item(id.hir_id);
     visitor.visit_ident(ident);
     visitor.visit_associated_item_kind(kind);
     visitor.visit_defaultness(defaultness);
@@ -991,7 +973,7 @@ pub fn walk_impl_item<'v, V: Visitor<'v>>(visitor: &mut V, impl_item: &'v ImplIt
 pub fn walk_impl_item_ref<'v, V: Visitor<'v>>(visitor: &mut V, impl_item_ref: &'v ImplItemRef<'v>) {
     // N.B., deliberately force a compilation error if/when new fields are added.
     let ImplItemRef { id, ident, ref kind, span: _, ref vis, ref defaultness } = *impl_item_ref;
-    visitor.visit_nested_impl_item(id);
+    visitor.visit_nested_reference_to_item(id.hir_id);
     visitor.visit_ident(ident);
     visitor.visit_associated_item_kind(kind);
     visitor.visit_vis(vis);
@@ -1024,7 +1006,7 @@ pub fn walk_stmt<'v, V: Visitor<'v>>(visitor: &mut V, statement: &'v Stmt<'v>) {
     visitor.visit_id(statement.hir_id);
     match statement.kind {
         StmtKind::Local(ref local) => visitor.visit_local(local),
-        StmtKind::Item(item) => visitor.visit_nested_item(item),
+        StmtKind::Item(item) => visitor.visit_nested_reference_to_item(item.id),
         StmtKind::Expr(ref expression) | StmtKind::Semi(ref expression) => {
             visitor.visit_expr(expression)
         }

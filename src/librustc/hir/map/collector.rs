@@ -346,17 +346,9 @@ impl<'a, 'hir> Visitor<'hir> for NodeCollector<'a, 'hir> {
         panic!("`visit_nested_xxx` must be manually implemented in this visitor");
     }
 
-    fn visit_nested_item(&mut self, item: ItemId) {
-        debug!("visit_nested_item: {:?}", item);
-        self.visit_item(self.krate.item(item.id));
-    }
-
-    fn visit_nested_trait_item(&mut self, item_id: TraitItemId) {
-        self.visit_trait_item(self.krate.trait_item(item_id));
-    }
-
-    fn visit_nested_impl_item(&mut self, item_id: ImplItemId) {
-        self.visit_impl_item(self.krate.impl_item(item_id));
+    fn visit_nested_reference_to_item(&mut self, id: HirId) {
+        debug!("visit_nested_reference_to_item: {:?}", id);
+        self.visit_item(self.krate.item(id));
     }
 
     fn visit_nested_body(&mut self, id: BodyId) {
@@ -574,7 +566,7 @@ impl<'a, 'hir> Visitor<'hir> for NodeCollector<'a, 'hir> {
         // map the actual nodes, not the duplicate ones in the *Ref.
         let TraitItemRef { id, ident: _, kind: _, span: _, defaultness: _ } = *ii;
 
-        self.visit_nested_trait_item(id);
+        self.visit_nested_reference_to_item(id.hir_id);
     }
 
     fn visit_impl_item_ref(&mut self, ii: &'hir ImplItemRef<'hir>) {
@@ -582,7 +574,7 @@ impl<'a, 'hir> Visitor<'hir> for NodeCollector<'a, 'hir> {
         // map the actual nodes, not the duplicate ones in the *Ref.
         let ImplItemRef { id, ident: _, kind: _, span: _, vis: _, defaultness: _ } = *ii;
 
-        self.visit_nested_impl_item(id);
+        self.visit_nested_reference_to_item(id.hir_id);
     }
 }
 
